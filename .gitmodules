@@ -13,3 +13,6 @@
 [submodule ".loopholerules"]
 	path = .loopholerules
 	url = https://github.com/loophole-ai/.loopholerules.git
+[submodule "loopholerules"]
+	path = loopholerules
+	url = https://github.com/loophole-ai/loopholerules.git
