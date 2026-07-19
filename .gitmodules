@@ -1,0 +1,15 @@
+[submodule "loophole-ide"]
+	path = loophole-ide
+	url = https://github.com/loophole-ai/loophole-ide.git
+
+[submodule "versions"]
+	path = versions
+	url = https://github.com/loophole-ai/versions.git
+
+[submodule "loophole-cli"]
+	path = loophole-cli
+	url = https://github.com/loophole-ai/loophole-cli.git
+
+[submodule ".loopholerules"]
+	path = .loopholerules
+	url = https://github.com/loophole-ai/.loopholerules.git
