@@ -1,0 +1,73 @@
+name: Daily submodule maintenance
+
+on:
+  schedule:
+    # Runs daily at 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-submodules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create branch
+        run: |
+          BRANCH="update-submodules-$(date +'%Y%m%d')"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          git checkout -b "$BRANCH"
+
+      - name: Remove cli submodule if present
+        run: |
+          set -e
+          if [ -f .gitmodules ] && git config -f .gitmodules --get-regexp path | grep -q 'cli'; then
+            echo "Removing cli submodule"
+            # Deinit and remove the submodule
+            git submodule deinit -f -- cli || true
+            rm -rf .git/modules/cli || true
+            git rm -f cli || true
+            git config -f .gitmodules --remove-section submodule.cli || true
+            # Clean up .gitmodules whitespace
+            awk 'NF' .gitmodules > .gitmodules.tmp || true
+            mv .gitmodules.tmp .gitmodules || true
+            git add .gitmodules || true
+          else
+            echo "No cli submodule found"
+          fi
+
+      - name: Update submodules to latest remote
+        run: |
+          # Update all submodules to the tip of their configured branch
+          git submodule update --init --remote --recursive
+          git add -A
+          if git status --porcelain | grep -q .; then
+            git commit -m "chore: update submodules to latest remote"
+            git push --set-upstream origin "$BRANCH"
+          else
+            echo "No submodule updates"
+            exit 0
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.BRANCH }}
+          title: "chore: update submodules"
+          body: |
+            Automated update of submodules and removal of 'cli' submodule (if present).
+          labels: automated, dependencies
